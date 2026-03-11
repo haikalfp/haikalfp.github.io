@@ -1,0 +1,16 @@
+{
+  "name": "Drillhole Assay Viewer",
+  "short_name": "Assay Viewer",
+  "description": "Mobile-friendly offline web app for viewing geological drillhole assay data.",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1a237e",
+  "icons": [
+    {
+      "src": "drillhole_assay_viewer_icon_1773197921753.png",
+      "sizes": "1024x1024",
+      "type": "image/png"
+    }
+  ]
+}
