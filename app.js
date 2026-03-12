@@ -128,6 +128,10 @@ function updateTable() {
 function showSummary() {
     if (activeFilteredData.length === 0) return;
 
+    const selectedHoleId = holeSelect.value;
+    const modalTitle = modal.querySelector('h2');
+    modalTitle.textContent = `Assay Summary: ${selectedHoleId}`;
+
     let targetData = activeFilteredData;
     
     // Filter by Available Materials (Below Topo) if enabled
@@ -188,8 +192,8 @@ function showSummary() {
                                 <td>${s.min.toFixed(2)}</td>
                                 <td>${s.max.toFixed(2)}</td>
                                 <td>${s.mean.toFixed(2)}</td>
-                                <td>${s.variance.toFixed(3)}</td>
-                                <td>${s.stdDev.toFixed(3)}</td>
+                                <td>${s.variance.toFixed(2)}</td>
+                                <td>${s.stdDev.toFixed(2)}</td>
                             </tr>
                         `;
                     }).join('')}
@@ -204,6 +208,10 @@ function showSummary() {
 
 function calculateOre() {
     if (activeFilteredData.length === 0) return;
+
+    const selectedHoleId = holeSelect.value;
+    const modalTitle = oreModal.querySelector('h2');
+    modalTitle.textContent = `Ore Calculation: ${selectedHoleId}`;
 
     let targetData = activeFilteredData;
     if (oreAvailableOnlyCheckbox.checked) {
