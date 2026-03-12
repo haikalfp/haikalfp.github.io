@@ -310,7 +310,13 @@ tbody tr:nth-child(even) {
     border-color: #ff9800;
 }
 
-.btn-toggle:disabled, .btn-summary:disabled, .btn-ore:disabled {
+.btn-diagram:not(:disabled) {
+    background: #2196f3;
+    color: white;
+    border-color: #2196f3;
+}
+
+.btn-toggle:disabled, .btn-summary:disabled, .btn-ore:disabled, .btn-diagram:disabled {
     opacity: 0.5;
     cursor: not-allowed;
 }
@@ -345,6 +351,60 @@ tbody tr:nth-child(even) {
     overflow-y: auto;
     position: relative;
     box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+}
+
+.chart-scroll-container {
+    flex: 1;
+    overflow: auto;
+    background: #fdfdfd;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.chart-container {
+    margin: 0 auto;
+    position: relative;
+    min-height: 400px;
+    transition: width 0.2s ease, height 0.2s ease;
+}
+
+.diagram-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    align-items: center;
+    font-size: 0.9rem;
+}
+
+.control-group {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.diagram-controls input[type="number"] {
+    padding: 0.3rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.85rem;
+}
+
+.control-group.toggles {
+    border-left: 2px solid #ddd;
+    padding-left: 1.5rem;
+}
+
+.control-group label {
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
 }
 
 .close-modal {

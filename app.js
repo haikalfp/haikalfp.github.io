@@ -10,34 +10,117 @@ const appContainer = document.getElementById('app');
 const toggleBtn = document.getElementById('toggleAbove');
 const summaryBtn = document.getElementById('showSummary');
 const showOreBtn = document.getElementById('showOreCalc');
+const showDiagramBtn = document.getElementById('showDiagram');
 const modal = document.getElementById('summaryModal');
 const oreModal = document.getElementById('oreModal');
+const diagramModal = document.getElementById('diagramModal');
 const closeModalBtns = document.querySelectorAll('.close-modal');
 const summaryStats = document.getElementById('summaryStats');
 const availableOnlyCheckbox = document.getElementById('availableOnly');
 const oreAvailableOnlyCheckbox = document.getElementById('oreAvailableOnly');
 const oreResults = document.getElementById('oreResults');
+const chartWidthSlider = document.getElementById('chartWidth');
+const chartHeightSlider = document.getElementById('chartHeight');
+const chartWrapper = document.getElementById('chartWrapper');
+const widthValue = document.getElementById('widthValue');
+const heightValue = document.getElementById('heightValue');
+const niMaxInput = document.getElementById('niMax');
+const othersMaxInput = document.getElementById('othersMax');
+const fullscreenBtn = document.getElementById('toggleFullscreen');
+const exportBtn = document.getElementById('exportJPG');
 
 let activeFilteredData = [];
+let assayChart = null;
 
 fileInput.addEventListener('change', handleFile);
 holeSelect.addEventListener('change', updateTable);
 toggleBtn.addEventListener('click', toggleMined);
 summaryBtn.addEventListener('click', showSummary);
 showOreBtn.addEventListener('click', calculateOre);
+showDiagramBtn.addEventListener('click', showDiagram);
 availableOnlyCheckbox.addEventListener('change', showSummary);
 oreAvailableOnlyCheckbox.addEventListener('change', calculateOre);
+
+fullscreenBtn.addEventListener('click', () => {
+    if (!document.fullscreenElement) {
+        diagramModal.requestFullscreen().catch(err => {
+            alert(`Error attempting to enable full-screen mode: ${err.message}`);
+        });
+    } else {
+        document.exitFullscreen();
+    }
+});
+
+exportBtn.addEventListener('click', () => {
+    const canvas = document.getElementById('assayChart');
+    const selectedHoleId = holeSelect.value;
+    
+    // Create a temporary canvas to add a white background for JPG
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = canvas.width;
+    tempCanvas.height = canvas.height;
+    const tctx = tempCanvas.getContext('2d');
+    
+    tctx.fillStyle = "#ffffff";
+    tctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+    tctx.drawImage(canvas, 0, 0);
+    
+    const link = document.createElement('a');
+    link.download = `Assay_Diagram_${selectedHoleId}.jpg`;
+    link.href = tempCanvas.toDataURL('image/jpeg', 1.0);
+    link.click();
+});
+
+chartWidthSlider.addEventListener('input', (e) => {
+    const w = e.target.value;
+    chartWrapper.style.width = `${w}px`;
+    widthValue.textContent = `${w}px`;
+    if (assayChart) assayChart.resize();
+});
+
+chartHeightSlider.addEventListener('input', (e) => {
+    const h = e.target.value;
+    chartWrapper.style.height = `${h}px`;
+    heightValue.textContent = `${h}px`;
+    if (assayChart) assayChart.resize();
+});
+
+niMaxInput.addEventListener('input', () => {
+    if (assayChart) {
+        assayChart.options.scales.xNi.max = parseFloat(niMaxInput.value) || 3.5;
+        assayChart.update();
+    }
+});
+
+othersMaxInput.addEventListener('input', () => {
+    if (assayChart) {
+        assayChart.options.scales.xOthers.max = parseFloat(othersMaxInput.value) || 70;
+        assayChart.update();
+    }
+});
+
+document.addEventListener('change', (e) => {
+    if (e.target.classList.contains('dataset-toggle')) {
+        const index = e.target.dataset.index;
+        if (assayChart) {
+            assayChart.setDatasetVisibility(index, e.target.checked);
+            assayChart.update();
+        }
+    }
+});
 
 closeModalBtns.forEach(btn => {
     btn.addEventListener('click', () => {
         modal.classList.add('hidden');
         oreModal.classList.add('hidden');
+        diagramModal.classList.add('hidden');
     });
 });
 
 window.addEventListener('click', (e) => {
     if (e.target === modal) modal.classList.add('hidden');
     if (e.target === oreModal) oreModal.classList.add('hidden');
+    if (e.target === diagramModal) diagramModal.classList.add('hidden');
 });
 
 function toggleMined() {
@@ -122,6 +205,7 @@ function updateTable() {
 
     summaryBtn.disabled = activeFilteredData.length === 0;
     showOreBtn.disabled = activeFilteredData.length === 0;
+    showDiagramBtn.disabled = activeFilteredData.length === 0;
     renderRows(activeFilteredData, collarZ, selectedHoleId);
 }
 
@@ -300,6 +384,215 @@ function calculateOre() {
     `;
 
     oreModal.classList.remove('hidden');
+}
+
+function showDiagram() {
+    if (activeFilteredData.length === 0) return;
+
+    const selectedHoleId = holeSelect.value;
+    document.getElementById('diagramTitle').textContent = `Assay Diagram: ${selectedHoleId}`;
+    
+    // Set initial size from sliders
+    chartWrapper.style.width = `${chartWidthSlider.value}px`;
+    chartWrapper.style.height = `${chartHeightSlider.value}px`;
+    widthValue.textContent = `${chartWidthSlider.value}px`;
+    heightValue.textContent = `${chartHeightSlider.value}px`;
+
+    diagramModal.classList.remove('hidden');
+
+    const ctx = document.getElementById('assayChart').getContext('2d');
+    
+    if (assayChart) {
+        assayChart.destroy();
+    }
+
+    // Prepare data as {x, y} where y is Depth (using "To" depth as requested)
+    const niData = activeFilteredData.map(d => ({ x: parseFloat(d['Ni']) || 0, y: parseFloat(d['To']) || 0 }));
+    const feData = activeFilteredData.map(d => ({ x: parseFloat(d['Fe']) || 0, y: parseFloat(d['To']) || 0 }));
+    const mgoData = activeFilteredData.map(d => ({ x: parseFloat(d['MgO']) || 0, y: parseFloat(d['To']) || 0 }));
+    const sio2Data = activeFilteredData.map(d => ({ x: parseFloat(d['SiO2']) || 0, y: parseFloat(d['To']) || 0 }));
+    const coData = activeFilteredData.map(d => ({ x: parseFloat(d['Co']) || 0, y: parseFloat(d['To']) || 0 }));
+    const caoData = activeFilteredData.map(d => ({ x: parseFloat(d['CaO']) || 0, y: parseFloat(d['To']) || 0 }));
+    const al2o3Data = activeFilteredData.map(d => ({ x: parseFloat(d['Al2O3']) || 0, y: parseFloat(d['To']) || 0 }));
+    const simaData = activeFilteredData.map(d => ({ x: parseFloat(d['SiMa']) || 0, y: parseFloat(d['To']) || 0 }));
+
+    // Find max depth for scale padding
+    const maxDepth = Math.max(...activeFilteredData.map(d => parseFloat(d['To']) || 0));
+
+    assayChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            datasets: [
+                {
+                    label: 'Ni (%)',
+                    data: niData,
+                    borderColor: '#1e88e5',
+                    backgroundColor: '#1e88e5',
+                    xAxisID: 'xNi',
+                    yAxisID: 'y',
+                    pointStyle: 'rectRot',
+                    pointRadius: 4,
+                    borderWidth: 2,
+                    tension: 0.1,
+                    hidden: !document.querySelector('.dataset-toggle[data-index="0"]').checked
+                },
+                {
+                    label: 'Fe (%)',
+                    data: feData,
+                    borderColor: '#b71c1c',
+                    backgroundColor: '#b71c1c',
+                    xAxisID: 'xOthers',
+                    yAxisID: 'y',
+                    pointStyle: 'rect',
+                    pointRadius: 4,
+                    borderWidth: 2,
+                    tension: 0.1,
+                    hidden: !document.querySelector('.dataset-toggle[data-index="1"]').checked
+                },
+                {
+                    label: 'MgO (%)',
+                    data: mgoData,
+                    borderColor: '#ffca28',
+                    backgroundColor: '#ffca28',
+                    xAxisID: 'xOthers',
+                    yAxisID: 'y',
+                    pointStyle: 'circle',
+                    pointRadius: 4,
+                    borderWidth: 2,
+                    tension: 0.1,
+                    hidden: !document.querySelector('.dataset-toggle[data-index="2"]').checked
+                },
+                {
+                    label: 'SiO2 (%)',
+                    data: sio2Data,
+                    borderColor: '#7cb342',
+                    backgroundColor: '#7cb342',
+                    xAxisID: 'xOthers',
+                    yAxisID: 'y',
+                    pointStyle: 'triangle',
+                    pointRadius: 4,
+                    borderWidth: 2,
+                    tension: 0.1,
+                    hidden: !document.querySelector('.dataset-toggle[data-index="3"]').checked
+                },
+                {
+                    label: 'Co (%)',
+                    data: coData,
+                    borderColor: '#f06292',
+                    backgroundColor: '#f06292',
+                    xAxisID: 'xOthers',
+                    yAxisID: 'y',
+                    pointStyle: 'star',
+                    pointRadius: 5,
+                    borderWidth: 1,
+                    tension: 0.1,
+                    hidden: !document.querySelector('.dataset-toggle[data-index="4"]').checked
+                },
+                {
+                    label: 'CaO (%)',
+                    data: caoData,
+                    borderColor: '#9c27b0',
+                    backgroundColor: '#9c27b0',
+                    xAxisID: 'xOthers',
+                    yAxisID: 'y',
+                    pointStyle: 'crossRot',
+                    pointRadius: 4,
+                    borderWidth: 1,
+                    tension: 0.1,
+                    hidden: !document.querySelector('.dataset-toggle[data-index="5"]').checked
+                },
+                {
+                    label: 'Al2O3 (%)',
+                    data: al2o3Data,
+                    borderColor: '#8d6e63',
+                    backgroundColor: '#8d6e63',
+                    xAxisID: 'xOthers',
+                    yAxisID: 'y',
+                    pointStyle: 'rectRounded',
+                    pointRadius: 4,
+                    borderWidth: 1,
+                    tension: 0.1,
+                    hidden: !document.querySelector('.dataset-toggle[data-index="6"]').checked
+                },
+                {
+                    label: 'SiMa',
+                    data: simaData,
+                    borderColor: '#4db6ac',
+                    backgroundColor: '#4db6ac',
+                    xAxisID: 'xOthers',
+                    yAxisID: 'y',
+                    pointStyle: 'dash',
+                    pointRadius: 4,
+                    borderWidth: 1,
+                    tension: 0.1,
+                    hidden: !document.querySelector('.dataset-toggle[data-index="7"]').checked
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            indexAxis: 'y', 
+            scales: {
+                y: {
+                    type: 'linear',
+                    position: 'left',
+                    title: { display: true, text: 'Depth (meter)' },
+                    reverse: true,
+                    min: 0,
+                    max: Math.ceil(maxDepth),
+                    ticks: {
+                        stepSize: 1,
+                        callback: (value) => value % 1 === 0 ? value : ''
+                    },
+                    grid: { color: '#f0f0f0' }
+                },
+                yRight: {
+                    type: 'linear',
+                    position: 'right',
+                    reverse: true,
+                    min: 0,
+                    max: Math.ceil(maxDepth),
+                    ticks: {
+                        stepSize: 1,
+                        callback: (value) => value % 1 === 0 ? value : ''
+                    },
+                    grid: { display: false }
+                },
+                xNi: {
+                    type: 'linear',
+                    position: 'bottom',
+                    min: 0,
+                    max: parseFloat(niMaxInput.value) || 3.5,
+                    title: { display: true, text: 'Ni %', color: '#1e88e5', font: { weight: 'bold' } },
+                    ticks: { color: '#1e88e5' },
+                    grid: { display: false }
+                },
+                xOthers: {
+                    type: 'linear',
+                    position: 'top',
+                    min: 0,
+                    max: parseFloat(othersMaxInput.value) || 70,
+                    title: { display: true, text: 'Fe, MgO, SiO2 %', color: '#b71c1c', font: { weight: 'bold' } },
+                    ticks: { color: '#b71c1c' },
+                    grid: { color: '#f0f0f0' }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    callbacks: {
+                        title: (tooltipItems) => `Depth: ${tooltipItems[0].parsed.y.toFixed(2)}m`
+                    }
+                },
+                legend: {
+                    position: 'bottom',
+                    labels: { usePointStyle: true, padding: 20 }
+                }
+            }
+        }
+    });
 }
 
 function renderRows(data, collarZ, selectedHoleId) {
