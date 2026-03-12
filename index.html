@@ -27,10 +27,51 @@
                     <option value="">Select a Hole ID...</option>
                 </select>
             </div>
+            <div class="action-buttons">
+                <button id="toggleAbove" class="btn-toggle" title="Toggle Mined Intervals">🌑 Dim Mined</button>
+                <button id="showSummary" class="btn-summary" disabled>📊 Assay Summary</button>
+                <button id="showOreCalc" class="btn-ore" disabled>⛏️ Ore Calculation</button>
+            </div>
         </div>
     </header>
 
-    <main id="app">
+    <!-- Modal for Assay Summary -->
+    <div id="summaryModal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Assay Summary Statistics</h2>
+            <div class="summary-controls">
+                <label class="switch-wrapper">
+                    <input type="checkbox" id="availableOnly">
+                    <span class="slider"></span>
+                    <span class="label-text">Available Materials Only (Below Topo)</span>
+                </label>
+            </div>
+            <div id="summaryStats">
+                <!-- Summary tables will be injected here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Ore Calculation -->
+    <div id="oreModal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Remaining Ore Calculation</h2>
+            <div class="summary-controls">
+                <label class="switch-wrapper">
+                    <input type="checkbox" id="oreAvailableOnly">
+                    <span class="slider"></span>
+                    <span class="label-text">Available Materials Only (Below Topo)</span>
+                </label>
+            </div>
+            <div id="oreResults">
+                <!-- Ore results will be injected here -->
+            </div>
+        </div>
+    </div>
+
+    <main id="app" class="dim-mined">
         <div id="welcomeMessage" class="empty-state">
             <p>Please load an Excel file to begin viewing assay data.</p>
         </div>

@@ -249,10 +249,15 @@ tbody tr:nth-child(even) {
 }
 
 /* Topo-aware Row Styling */
-.row-above {
-    opacity: 0.5;
-    filter: grayscale(0.8);
+#app.dim-mined .row-above {
+    opacity: 0.15;
+    filter: grayscale(1);
     background-color: #f0f0f0 !important;
+    pointer-events: none;
+}
+
+#app:not(.dim-mined) .row-above {
+    background-color: rgba(0, 0, 0, 0.03);
 }
 
 .row-above td {
@@ -268,6 +273,175 @@ tbody tr:nth-child(even) {
     /* Strong indicator for remaining ore */
 }
 
+/* UI Elements */
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.btn-toggle, .btn-summary {
+    flex: 1;
+    padding: 0.75rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border-color);
+    transition: all 0.2s;
+    background: white;
+}
+
+.btn-toggle.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+.btn-summary:not(:disabled) {
+    background: #4caf50;
+    color: white;
+    border-color: #4caf50;
+}
+
+.btn-ore:not(:disabled) {
+    background: #ff9800;
+    color: white;
+    border-color: #ff9800;
+}
+
+.btn-toggle:disabled, .btn-summary:disabled, .btn-ore:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Modal Styling */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+.modal.hidden {
+    display: none;
+}
+
+.modal-content {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+}
+
+.close-modal {
+    position: absolute;
+    top: 1rem;
+    right: 1.5rem;
+    font-size: 1.5rem;
+    cursor: pointer;
+}
+
+/* Summary & Statistics Styling */
+.summary-controls {
+    margin: 1rem 0;
+    padding: 0.75rem;
+    background: #f1f3f4;
+    border-radius: 8px;
+}
+
+.switch-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.summary-table-container {
+    overflow-x: auto;
+    margin-top: 1.5rem;
+}
+
+.summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+}
+
+.summary-table th, .summary-table td {
+    padding: 0.5rem;
+    border: 1px solid #eee;
+    text-align: right;
+}
+
+.summary-table th {
+    background: #f8f9fa;
+    color: var(--text-muted);
+}
+
+.summary-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.results-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.metric-card {
+    background: #f8f9fa;
+    padding: 1.25rem;
+    border-radius: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-left: 5px solid #eee;
+}
+
+.metric-card.ore { border-left-color: #4caf50; }
+.metric-card.ob { border-left-color: #f44336; }
+.metric-card.sr { border-left-color: #2196f3; }
+.metric-card.thick { border-left-color: #9c27b0; }
+
+.metric-info h3 {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.25rem;
+}
+
+.metric-value {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--primary-dark);
+}
+
+.metric-unit {
+    font-size: 0.8rem;
+    margin-left: 0.25rem;
+    color: var(--text-muted);
+}
+
 /* Tablet & Desktop */
 @media (min-width: 768px) {
     .controls {
@@ -275,8 +449,13 @@ tbody tr:nth-child(even) {
         align-items: flex-end;
     }
 
-    .file-input-wrapper {
+    .file-input-wrapper, .action-buttons {
         width: auto;
+    }
+    
+    .btn-toggle, .btn-summary {
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
     }
 
     .selector-wrapper {
