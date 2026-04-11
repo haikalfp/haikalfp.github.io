@@ -12,6 +12,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://unpkg.com/georaster"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
 </head>
 
 <body>
@@ -21,6 +27,10 @@
             <div class="file-input-wrapper">
                 <button class="btn-file">📁 Load Excel Data</button>
                 <input type="file" id="fileInput" accept=".xlsx, .xlsm">
+            </div>
+            <div class="file-input-wrapper">
+                <button class="btn-file" id="mapUploadBtn">🗺️ Upload Map (PNG/JPG/TIF/PDF)</button>
+                <input type="file" id="mapInput" accept=".jpg, .jpeg, .png, .tif, .tiff, .pdf">
             </div>
             <div class="selector-wrapper">
                 <label for="holeSelect">Hole ID:</label>
@@ -124,9 +134,128 @@
         </div>
     </div>
 
+    <!-- Modal for Georeference (GCP-based) -->
+    <div id="georefModal" class="modal hidden">
+        <div class="modal-content georef-modal">
+            <span class="close-modal">&times;</span>
+            <h2>📍 Georeference Map Image</h2>
+            <p class="georef-desc">Click to place points on the image, then enter their UTM 51S coordinates. Minimum 2 points required, up to 4 for better accuracy. Scroll to zoom, drag to pan.</p>
+            
+            <div class="georef-viewer">
+                <div class="georef-toolbar">
+                    <button id="zoomInBtn" class="toolbar-btn" title="Zoom In">➕</button>
+                    <button id="zoomOutBtn" class="toolbar-btn" title="Zoom Out">➖</button>
+                    <button id="zoomFitBtn" class="toolbar-btn" title="Fit to View">🔲</button>
+                    <span id="zoomLevel" class="zoom-level">100%</span>
+                </div>
+                <div class="georef-image-wrapper" id="georefImageWrapper">
+                    <div class="georef-image-transform" id="georefImageTransform">
+                        <img id="georefPreview" src="" alt="Map preview" draggable="false">
+                        <div id="gcpMarker1" class="gcp-marker hidden">1</div>
+                        <div id="gcpMarker2" class="gcp-marker hidden">2</div>
+                        <div id="gcpMarker3" class="gcp-marker hidden">3</div>
+                        <div id="gcpMarker4" class="gcp-marker hidden">4</div>
+                    </div>
+                    <div id="gcpCrosshair" class="gcp-crosshair hidden"></div>
+                </div>
+            </div>
+
+            <div class="gcp-status" id="gcpStatus">
+                Click on the image to place <strong>Point 1</strong>
+            </div>
+
+            <div class="gcp-panels">
+                <!-- Point 1 -->
+                <div class="gcp-panel" id="gcp1Panel">
+                    <div class="gcp-panel-header">
+                        <span class="gcp-badge gcp-badge-1">1</span>
+                        <span>Point 1</span>
+                        <span class="gcp-pixel" id="gcp1Pixel">—</span>
+                    </div>
+                    <div class="georef-row">
+                        <div class="georef-field">
+                            <label for="gcp1E">Easting</label>
+                            <input type="number" id="gcp1E" placeholder="X" step="any" disabled>
+                        </div>
+                        <div class="georef-field">
+                            <label for="gcp1N">Northing</label>
+                            <input type="number" id="gcp1N" placeholder="Y" step="any" disabled>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Point 2 -->
+                <div class="gcp-panel" id="gcp2Panel">
+                    <div class="gcp-panel-header">
+                        <span class="gcp-badge gcp-badge-2">2</span>
+                        <span>Point 2</span>
+                        <span class="gcp-pixel" id="gcp2Pixel">—</span>
+                    </div>
+                    <div class="georef-row">
+                        <div class="georef-field">
+                            <label for="gcp2E">Easting</label>
+                            <input type="number" id="gcp2E" placeholder="X" step="any" disabled>
+                        </div>
+                        <div class="georef-field">
+                            <label for="gcp2N">Northing</label>
+                            <input type="number" id="gcp2N" placeholder="Y" step="any" disabled>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Point 3 -->
+                <div class="gcp-panel" id="gcp3Panel">
+                    <div class="gcp-panel-header">
+                        <span class="gcp-badge gcp-badge-3">3</span>
+                        <span>Point 3</span>
+                        <span class="gcp-pixel" id="gcp3Pixel">—</span>
+                    </div>
+                    <div class="georef-row">
+                        <div class="georef-field">
+                            <label for="gcp3E">Easting</label>
+                            <input type="number" id="gcp3E" placeholder="X" step="any" disabled>
+                        </div>
+                        <div class="georef-field">
+                            <label for="gcp3N">Northing</label>
+                            <input type="number" id="gcp3N" placeholder="Y" step="any" disabled>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Point 4 -->
+                <div class="gcp-panel" id="gcp4Panel">
+                    <div class="gcp-panel-header">
+                        <span class="gcp-badge gcp-badge-4">4</span>
+                        <span>Point 4</span>
+                        <span class="gcp-pixel" id="gcp4Pixel">—</span>
+                    </div>
+                    <div class="georef-row">
+                        <div class="georef-field">
+                            <label for="gcp4E">Easting</label>
+                            <input type="number" id="gcp4E" placeholder="X" step="any" disabled>
+                        </div>
+                        <div class="georef-field">
+                            <label for="gcp4N">Northing</label>
+                            <input type="number" id="gcp4N" placeholder="Y" step="any" disabled>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="georef-actions">
+                <button id="resetGCPs" class="btn-reset-gcp">🔄 Reset</button>
+                <button id="applyGeoref" class="btn-apply-georef" disabled>✅ Apply Georeference</button>
+            </div>
+        </div>
+    </div>
+
     <main id="app" class="dim-mined">
         <div id="welcomeMessage" class="empty-state">
             <p>Please load an Excel file to begin viewing assay data.</p>
+        </div>
+
+        <div id="map" class="map-container hidden">
+            <div id="coordDisplay" class="coord-display"></div>
         </div>
 
         <div id="tableContainer" class="table-container hidden">
